@@ -1,0 +1,42 @@
+export const events = [
+  {
+    id: "haldi",
+    title: "Haldi Ceremony",
+    date: "18 Feb 2027",
+    time: "10:00 AM",
+    venue: "Royal Garden, Jaipur",
+    note: "A tradition of new beginnings.",
+  },
+  {
+    id: "mehndi",
+    title: "Mehndi Ceremony",
+    date: "18 Feb 2027",
+    time: "04:00 PM",
+    venue: "Royal Garden, Jaipur",
+    note: "Colorful hands, happier hearts.",
+  },
+  {
+    id: "sangeet",
+    title: "Sangeet Night",
+    date: "17 Feb 2027",
+    time: "07:00 PM",
+    venue: "Royal Palace, Jaipur",
+    note: "Music, dance and endless joy.",
+  },
+  {
+    id: "wedding",
+    title: "Wedding Ceremony",
+    date: "18 Feb 2027",
+    time: "07:00 PM",
+    venue: "Main Mandap, Jaipur",
+    note: "Two souls, one journey.",
+  },
+  {
+    id: "reception",
+    title: "Reception",
+    date: "19 Feb 2027",
+    time: "07:00 PM",
+    venue: "Royal Palace, Jaipur",
+    note: "Celebrate love and togetherness.",
+  },
+];
