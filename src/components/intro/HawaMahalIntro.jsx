@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+import { memo, useRef, useEffect, useState } from "react";
 import {
   motion,
   animate,
@@ -6,6 +6,7 @@ import {
   useTransform,
   useReducedMotion,
   useMotionValue,
+  useMotionValueEvent,
 } from "framer-motion";
 import { getLenis } from "../../lib/scroll";
 
@@ -19,7 +20,7 @@ const ZOOM_END = 0.6;
 const FADE_START = 0.62;
 const FADE_END = 0.92;
 const FILL = 0.94;
-const MAX_ZOOM_CAP = 14;
+const MAX_ZOOM_CAP = 10; // pehle 14 tha. Kam zoom = halka GPU load
 
 const SKIP_DURATION = 3.6; // seconds. Zyada = slow
 
@@ -54,32 +55,30 @@ const skyCss = `
 }
 `;
 
+// left = static (mobile/tablet) par fixed jagah. Desktop par animation chalti hai
 const clouds = [
-  { top: "4%", w: 150, dur: 70, delay: -10, op: 0.95 },
-  { top: "11%", w: 110, dur: 95, delay: -55, op: 0.8 },
-  { top: "19%", w: 190, dur: 120, delay: -30, op: 0.9 },
-  { top: "27%", w: 95, dur: 80, delay: -65, op: 0.7 },
-  { top: "8%", w: 130, dur: 105, delay: -85, op: 0.85 },
+  { top: "5%", left: "8%", w: 150, dur: 70, delay: -10, op: 0.95 },
+  { top: "14%", left: "52%", w: 190, dur: 120, delay: -50, op: 0.85 },
+  { top: "24%", left: "22%", w: 110, dur: 95, delay: -70, op: 0.75 },
 ];
 
 const birds = [
-  { top: "9%", size: 22, dur: 26, delay: -4 },
-  { top: "13%", size: 16, dur: 31, delay: -12 },
-  { top: "17%", size: 18, dur: 28, delay: -20 },
-  { top: "7%", size: 14, dur: 36, delay: -27 },
-  { top: "22%", size: 20, dur: 33, delay: -8 },
+  { top: "10%", left: "36%", size: 20, dur: 28, delay: -6 },
+  { top: "18%", left: "70%", size: 16, dur: 34, delay: -18 },
 ];
 
-function Cloud({ top, w, dur, delay, op }) {
+function Cloud({ top, left, w, dur, delay, op, still }) {
   return (
     <div
-      className="hm-cloud absolute left-0"
+      className="hm-cloud absolute"
       style={{
         top,
+        left: still ? left : 0,
         width: w,
         opacity: op,
-        animationDuration: `${dur}s`,
-        animationDelay: `${delay}s`,
+        ...(still
+          ? { animation: "none", willChange: "auto" }
+          : { animationDuration: `${dur}s`, animationDelay: `${delay}s` }),
       }}
     >
       <svg viewBox="0 0 200 80" className="block w-full" fill="#ffffff">
@@ -92,15 +91,17 @@ function Cloud({ top, w, dur, delay, op }) {
   );
 }
 
-function Bird({ top, size, dur, delay }) {
+function Bird({ top, left, size, dur, delay, still }) {
   return (
     <div
-      className="hm-bird absolute left-0"
+      className="hm-bird absolute"
       style={{
         top,
+        left: still ? left : 0,
         width: size,
-        animationDuration: `${dur}s`,
-        animationDelay: `${delay}s`,
+        ...(still
+          ? { animation: "none", willChange: "auto" }
+          : { animationDuration: `${dur}s`, animationDelay: `${delay}s` }),
       }}
     >
       <svg
@@ -111,6 +112,7 @@ function Bird({ top, size, dur, delay }) {
         strokeWidth="1.6"
         strokeLinecap="round"
         opacity="0.75"
+        style={still ? { animation: "none" } : undefined}
       >
         <path d="M1 7 Q6 0 12 6 Q18 0 23 7" />
       </svg>
@@ -118,7 +120,9 @@ function Bird({ top, size, dur, delay }) {
   );
 }
 
-function Sky() {
+// memo: scroll par Sky dobara render nahi hoga
+// still = mobile/tablet: clouds aur birds dikhte hain, par ruke hue (motion nahi)
+const Sky = memo(function Sky({ still }) {
   return (
     <div
       className="absolute inset-0 overflow-hidden"
@@ -130,14 +134,14 @@ function Sky() {
     >
       <style>{skyCss}</style>
       {clouds.map((c, i) => (
-        <Cloud key={i} {...c} />
+        <Cloud key={i} {...c} still={still} />
       ))}
       {birds.map((b, i) => (
-        <Bird key={i} {...b} />
+        <Bird key={i} {...b} still={still} />
       ))}
     </div>
   );
-}
+});
 
 /**
  * focal:             { x, y } palace image ke % mein, jharokha ka center
@@ -166,7 +170,8 @@ export default function HawaMahalIntro({
   const skipAnim = useRef(null);
   const skipping = useRef(false);
   const reduce = useReducedMotion();
-  const mobile = useIsMobile();
+  const mobile = useIsMobile(); // geometry (zoom/crop) ke liye: sirf phone
+  const stillSky = useIsMobile("(max-width: 1023px)"); // clouds/birds ruke: phone + tablet
   const ratio = width / height;
 
   // Track: top se (100 + SCROLL_SVH)svh. Progress 0 -> 1 = pehle SCROLL_SVH scroll
@@ -174,6 +179,25 @@ export default function HawaMahalIntro({
     target: trackRef,
     offset: ["start start", "end end"],
   });
+
+  // ↓↓↓ YAHAN PATCH ↓↓↓
+  // Intro khatam (stage poora fade ho gaya) -> Hero ab dikh raha hai
+  const introDoneFired = useRef(false);
+  const fireIntroDone = () => {
+    if (introDoneFired.current) return;
+    introDoneFired.current = true;
+    window.__introDone = true; // MusicPlayer baad me mount ho to bhi pata chale
+    window.dispatchEvent(new Event("intro-done"));
+  };
+  useMotionValueEvent(scrollYProgress, "change", (p) => {
+    if (p >= FADE_END) fireIntroDone();
+  });
+  useEffect(() => {
+    // reduced-motion me intro hota hi nahi, Hero seedha dikhta hai
+    if (reduce) fireIntroDone();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reduce]);
+  // ↑↑↑ PATCH KHATAM ↑↑↑
 
   const mobMV = useMotionValue(mobile ? 1 : 0);
   const zoomMV = useMotionValue(maxZoom);
@@ -202,8 +226,18 @@ export default function HawaMahalIntro({
       zoomMV.set(Math.min(MAX_ZOOM_CAP, zx, zy));
     };
     update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
+
+    // resize par har event pe nahi, frame mein ek baar
+    let raf = 0;
+    const onResize = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(update);
+    };
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
+    };
   }, [
     jharokhaCrop,
     maxZoom,
@@ -212,6 +246,7 @@ export default function HawaMahalIntro({
     mobileZoomBoost,
     ratio,
     focal.y,
+    bottomCrop,
     zoomMV,
     mobMV,
     deskYMV,
@@ -301,15 +336,11 @@ export default function HawaMahalIntro({
   const fullOpacity = useTransform(scrollYProgress, [0.42, 0.58], [0, 1]);
   const fullScale = useTransform(scrollYProgress, [0.42, FADE_END], [1, 1.08]);
 
+  // stageScale hata diya: fade ke dauraan poora zoomed stage scale karna bhaari tha
   const stageOpacity = useTransform(
     scrollYProgress,
     [FADE_START, FADE_END],
     [1, 0],
-  );
-  const stageScale = useTransform(
-    scrollYProgress,
-    [FADE_START, FADE_END],
-    [1, 1.12],
   );
   const stageVisibility = useTransform(scrollYProgress, (p) =>
     p >= FADE_END ? "hidden" : "visible",
@@ -371,12 +402,11 @@ export default function HawaMahalIntro({
               ? undefined
               : {
                   opacity: stageOpacity,
-                  scale: stageScale,
                   visibility: stageVisibility,
                 }
           }
         >
-          <Sky />
+          <Sky still={stillSky} />
 
           <div className={cameraClass} style={cameraBox}>
             <motion.div
@@ -431,7 +461,7 @@ export default function HawaMahalIntro({
               loading="eager"
               decoding="async"
               draggable={false}
-              className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover will-change-transform"
+              className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover"
               style={{ opacity: fullOpacity, scale: fullScale }}
             />
           )}
@@ -451,7 +481,7 @@ export default function HawaMahalIntro({
               onClick={skipIntro}
               aria-label="Skip intro"
               style={{ opacity: skipOpacity, pointerEvents: skipEvents }}
-              className="absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-4 z-20 rounded-full border border-gold/70 bg-cream/90 px-5 py-2 text-xs font-medium tracking-[0.2em] text-maroon shadow-md backdrop-blur-sm transition-colors hover:bg-white sm:right-8"
+              className="absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-4 z-20 rounded-full border border-gold/70 bg-cream px-5 py-2 text-xs font-medium tracking-[0.2em] text-maroon shadow-md transition-colors hover:bg-white sm:right-8"
             >
               SKIP →
             </motion.button>

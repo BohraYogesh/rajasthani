@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { images } from "../../data/images";
 import { wedding } from "../../data/weddingData";
 import Img from "../ui/Img";
@@ -6,21 +5,15 @@ import Reveal from "../ui/Reveal";
 import SectionTitle from "../ui/SectionTitle";
 import { Diamond } from "../ui/Ornament";
 
-/* ---------- Rajasthani background art (pure SVG) ---------- */
+/* ---------- Rajasthani background art (static, koi animation nahi) ---------- */
 
-function Vine({ className = "", duration = 9, delay = 0, mirror = false }) {
+function Vine({ className = "" }) {
   const nodes = Array.from({ length: 10 }, (_, i) => i);
   return (
-    <motion.svg
+    <svg
       viewBox="0 0 80 600"
       aria-hidden="true"
       className={className}
-      style={{
-        originY: 1,
-        transform: mirror ? "scaleX(-1)" : undefined,
-      }}
-      animate={{ rotate: [-1.2, 1.2, -1.2] }}
-      transition={{ duration, delay, repeat: Infinity, ease: "easeInOut" }}
       fill="none"
       stroke="currentColor"
       strokeWidth="1.2"
@@ -61,43 +54,36 @@ function Vine({ className = "", duration = 9, delay = 0, mirror = false }) {
           </g>
         );
       })}
-    </motion.svg>
+    </svg>
   );
 }
 
-function Petal({ left, size, duration, delay, drift }) {
+// Fixed jagah par thehri hui pankhudiyan (girti nahi)
+function Petal({ left, top, size, rotate }) {
   return (
-    <motion.svg
+    <svg
       viewBox="-10 -10 20 20"
       aria-hidden="true"
       className="absolute text-rose"
-      style={{ left, width: size, height: size }}
-      initial={{ top: "-6%", opacity: 0 }}
-      animate={{
-        top: ["-6%", "104%"],
-        x: [0, drift, -drift / 2, drift],
-        rotate: [0, 180, 360],
-        opacity: [0, 0.5, 0.5, 0],
-      }}
-      transition={{ duration, delay, repeat: Infinity, ease: "linear" }}
+      style={{ left, top, width: size, height: size, transform: `rotate(${rotate}deg)` }}
     >
       <path
         d="M0 -9 C 8 -6 8 6 0 9 C -8 6 -8 -6 0 -9 Z"
         fill="currentColor"
-        fillOpacity="0.45"
+        fillOpacity="0.4"
       />
-    </motion.svg>
+    </svg>
   );
 }
 
 const petals = [
-  { left: "8%", size: 14, duration: 16, delay: 0, drift: 24 },
-  { left: "20%", size: 10, duration: 20, delay: 4, drift: -20 },
-  { left: "34%", size: 16, duration: 18, delay: 8, drift: 30 },
-  { left: "48%", size: 12, duration: 22, delay: 2, drift: -26 },
-  { left: "62%", size: 15, duration: 17, delay: 6, drift: 22 },
-  { left: "76%", size: 11, duration: 21, delay: 10, drift: -18 },
-  { left: "90%", size: 14, duration: 19, delay: 3, drift: 28 },
+  { left: "8%", top: "14%", size: 14, rotate: 20 },
+  { left: "22%", top: "48%", size: 10, rotate: -35 },
+  { left: "36%", top: "8%", size: 16, rotate: 70 },
+  { left: "50%", top: "62%", size: 12, rotate: -10 },
+  { left: "64%", top: "20%", size: 15, rotate: 140 },
+  { left: "78%", top: "74%", size: 11, rotate: -80 },
+  { left: "90%", top: "38%", size: 14, rotate: 40 },
 ];
 
 function StoryBackdrop() {
@@ -105,21 +91,19 @@ function StoryBackdrop() {
     <div
       aria-hidden="true"
       className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+      style={{ contain: "paint" }}
     >
       {/* 1. phool-bel dono kinaron par */}
       <div className="text-gold">
         <Vine className="absolute bottom-0 left-0 h-full w-16 opacity-30 md:w-28 md:opacity-40" />
-        <Vine
-          mirror
-          duration={11}
-          delay={1}
-          className="absolute bottom-0 right-0 h-full w-16 opacity-30 md:w-28 md:opacity-40"
-        />
+        <Vine className="absolute bottom-0 right-0 h-full w-16 -scale-x-100 opacity-30 md:w-28 md:opacity-40" />
       </div>
 
-      {/* 2. girti gulab ki pankhudiyan */}
+      {/* 2. pankhudiyan: mobile par sirf 4 */}
       {petals.map((p, i) => (
-        <Petal key={i} {...p} />
+        <div key={i} className={i > 3 ? "hidden md:block" : ""}>
+          <Petal {...p} />
+        </div>
       ))}
     </div>
   );
@@ -155,20 +139,17 @@ export default function OurStory() {
               {/* hanging string */}
               <span className="h-10 w-px bg-gold md:h-14" />
               <Diamond className="-mt-0.5 mb-1" />
-              <motion.div
-                animate={{ rotate: [-1.5, 1.5, -1.5] }}
-                transition={{
-                  duration: 6 + i,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-                style={{ originY: 0 }}
-                className="h-44 w-44 overflow-hidden rounded-full border-[4px] border-gold p-1.5 shadow-[0_20px_40px_-20px_rgba(107,31,46,.6)] md:h-64 md:w-64"
+
+              {/* Jhoolna: CSS animation (GPU), framer-motion nahi. Mobile par band */}
+              <div
+                className="swing h-44 w-44 overflow-hidden rounded-full border-[4px] border-gold p-1.5 shadow-[0_20px_40px_-20px_rgba(107,31,46,.6)] md:h-64 md:w-64"
+                style={{ "--dur": `${6 + i}s` }}
               >
                 <div className="h-full w-full overflow-hidden rounded-full">
                   <Img src={images.story[i]} label={s.title} />
                 </div>
-              </motion.div>
+              </div>
+
               <h3 className="mt-5 font-display text-xl font-semibold text-rose md:text-2xl">
                 {s.title}
               </h3>

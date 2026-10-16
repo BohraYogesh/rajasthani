@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import music from '../../assets/music-1.mp3'
 
-export default function MusicPlayer({ src = music, triggerId = 'home' }) {
+export default function MusicPlayer({ src = music }) {
   const audioRef = useRef(null)
   const readyRef = useRef(false)
   const startedRef = useRef(false)
@@ -15,9 +15,12 @@ export default function MusicPlayer({ src = music, triggerId = 'home' }) {
     audio.volume = 0.5
 
     const events = ['click', 'touchend', 'keydown']
-    const removeGestures = () => events.forEach((ev) => window.removeEventListener(ev, onGesture))
 
-    const tryPlay = () => {
+    function removeGestures() {
+      events.forEach((ev) => window.removeEventListener(ev, onGesture))
+    }
+
+    function tryPlay() {
       if (!readyRef.current || startedRef.current || userPausedRef.current) return
       audio
         .play()
@@ -35,54 +38,25 @@ export default function MusicPlayer({ src = music, triggerId = 'home' }) {
       if (e.target.closest?.('[data-music-btn]')) return
       tryPlay()
     }
-    events.forEach((ev) => window.addEventListener(ev, onGesture, { passive: true }))
 
-    // Hero ke upar ya parent me koi fade/opacity to nahi chal rahi?
-    const isOpaque = (el) => {
-      for (let n = el; n && n !== document.body; n = n.parentElement) {
-        const cs = getComputedStyle(n)
-        if (cs.visibility === 'hidden' || cs.display === 'none') return false
-        if (parseFloat(cs.opacity) < 0.95) return false
-      }
-      return true
-    }
-
-    const heroReady = () => {
-      const hero = document.getElementById(triggerId)
-      if (!hero) return false
-      const r = hero.getBoundingClientRect()
-      const vh = window.innerHeight
-      // Hero screen ko lagbhag poora bhar de
-      if (!(r.top <= vh * 0.2 && r.bottom >= vh * 0.8)) return false
-      if (!isOpaque(hero)) return false
-      // Hero ke upar intro ki koi layer na ho
-      const top = document.elementFromPoint(window.innerWidth / 2, vh / 2)
-      return !!top && hero.contains(top)
-    }
-
-    const markReady = () => {
+    function markReady() {
       if (readyRef.current) return
       readyRef.current = true
       setVisible(true)
       tryPlay()
     }
 
-    // Optional: intro khud "intro-done" event bheje to turant ready
+    events.forEach((ev) => window.addEventListener(ev, onGesture, { passive: true }))
+
+    // Intro pehle hi khatam ho chuka ho (reduced-motion ya HMR) to turant ready
+    if (window.__introDone) markReady()
     window.addEventListener('intro-done', markReady)
 
-    const timer = setInterval(() => {
-      if (heroReady()) {
-        markReady()
-        clearInterval(timer)
-      }
-    }, 250)
-
     return () => {
-      clearInterval(timer)
       removeGestures()
       window.removeEventListener('intro-done', markReady)
     }
-  }, [triggerId])
+  }, [])
 
   const toggle = () => {
     const audio = audioRef.current
@@ -98,7 +72,8 @@ export default function MusicPlayer({ src = music, triggerId = 'home' }) {
 
   return (
     <>
-      <audio ref={audioRef} src={src} loop preload="auto" />
+      {/* preload="none": intro ke dauraan mp3 download nahi hoga (intro halka rahega) */}
+      <audio ref={audioRef} src={src} loop preload="none" />
       <button
         data-music-btn
         onClick={toggle}

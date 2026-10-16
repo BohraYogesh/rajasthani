@@ -3,7 +3,7 @@ import { destroySmoothScroll, initSmoothScroll } from "./lib/scroll";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 import HawaMahalIntro from "./components/intro/HawaMahalIntro";
-import BaraatScene from "./components/intro/BaraatScene";
+// import BaraatScene from "./components/intro/BaraatScene";
 import Hero from "./components/sections/Hero";
 import FamilyInvitation from "./components/sections/FamilyInvitation";
 import WeddingJourney from "./components/sections/WeddingJourney";

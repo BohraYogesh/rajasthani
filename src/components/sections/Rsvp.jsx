@@ -7,27 +7,28 @@ import { submitRsvp } from '../../utils/submitRsvp'
 import Reveal from '../ui/Reveal'
 import SectionTitle from '../ui/SectionTitle'
 
-/* ---------- Rajasthani background art (pure SVG) ---------- */
+/* ---------- Rajasthani background art (halka, mostly static) ---------- */
 
-function Rangoli({ className = '', duration = 120 }) {
+// Leheriya (waves): ek 60x48 tile, CSS background se repeat hoti hai
+const LEHERIYA =
+  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='48'><g fill='none' stroke='%236b1f2e'><path d='M0 8 Q15 -4 30 8 T60 8' stroke-width='2.2'/><path d='M0 22 Q15 10 30 22 T60 22' stroke-width='1.2'/><path d='M0 34 Q15 22 30 34 T60 34' stroke-width='2.2'/><path d='M0 46 Q15 34 30 46 T60 46' stroke-width='1.2'/></g></svg>\")"
+
+// Rangoli: ab static (rotate hata diya)
+function Rangoli({ className = '' }) {
   const petals = Array.from({ length: 8 }, (_, i) => i * 45)
   const dots = Array.from({ length: 16 }, (_, i) => i * 22.5)
   return (
-    <motion.svg
+    <svg
       viewBox="-100 -100 200 200"
       aria-hidden="true"
       className={className}
-      animate={{ rotate: 360 }}
-      transition={{ duration, repeat: Infinity, ease: 'linear' }}
       fill="none"
       stroke="currentColor"
       strokeWidth="0.9"
     >
-      {/* bahar ki dot ring */}
       {dots.map((a) => (
         <circle key={a} transform={`rotate(${a}) translate(0 -92)`} r="2" fill="currentColor" />
       ))}
-      {/* bade patte */}
       {petals.map((a) => (
         <g key={a} transform={`rotate(${a})`}>
           <path
@@ -39,7 +40,6 @@ function Rangoli({ className = '', duration = 120 }) {
           <circle cy="-62" r="2" fill="currentColor" />
         </g>
       ))}
-      {/* beech ke tirche patte */}
       {petals.map((a) => (
         <path
           key={`s${a}`}
@@ -52,11 +52,12 @@ function Rangoli({ className = '', duration = 120 }) {
       <circle r="16" />
       <circle r="10" strokeDasharray="1.5 3" />
       <circle r="4" fill="currentColor" />
-    </motion.svg>
+    </svg>
   )
 }
 
-function Diya({ className = '', duration = 2.4, delay = 0 }) {
+// Diya: lau ka flicker CSS (.flame) se, desktop par. Mobile par band
+function Diya({ className = '', duration = 2.4 }) {
   return (
     <svg
       viewBox="0 0 60 56"
@@ -67,20 +68,16 @@ function Diya({ className = '', duration = 2.4, delay = 0 }) {
       strokeWidth="1.2"
       strokeLinecap="round"
     >
-      {/* lau */}
-      <motion.path
+      <path
+        className="flame"
+        style={{ '--dur': `${duration}s` }}
         d="M30 4 C 38 14 38 24 30 30 C 22 24 22 14 30 4 Z"
         fill="currentColor"
         fillOpacity="0.55"
-        style={{ originX: 0.5, originY: 1 }}
-        animate={{ scaleY: [1, 1.18, 0.94, 1.1, 1], scaleX: [1, 0.92, 1.05, 0.96, 1], opacity: [0.9, 1, 0.75, 1, 0.9] }}
-        transition={{ duration, delay, repeat: Infinity, ease: 'easeInOut' }}
       />
       <path d="M30 30 V34" />
-      {/* diye ka katora */}
       <path d="M6 34 H54 C 52 46 42 52 30 52 C 18 52 8 46 6 34 Z" fill="currentColor" fillOpacity="0.14" />
       <path d="M14 40 H46" strokeWidth="0.8" strokeDasharray="2 3" />
-      {/* nok */}
       <path d="M54 34 C 58 32 60 30 60 28" />
     </svg>
   )
@@ -88,50 +85,35 @@ function Diya({ className = '', duration = 2.4, delay = 0 }) {
 
 function RsvpBackdrop() {
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-      {/* 1. leheriya (wave) pattern */}
-      <svg className="absolute inset-0 h-full w-full text-maroon opacity-[0.08]">
-        <defs>
-          <pattern
-            id="leheriya"
-            width="60"
-            height="48"
-            patternUnits="userSpaceOnUse"
-            patternTransform="rotate(-35)"
-          >
-            <path d="M0 8 Q15 -4 30 8 T60 8" fill="none" stroke="currentColor" strokeWidth="2.2" />
-            <path d="M0 22 Q15 10 30 22 T60 22" fill="none" stroke="currentColor" strokeWidth="1.2" />
-            <path d="M0 34 Q15 22 30 34 T60 34" fill="none" stroke="currentColor" strokeWidth="2.2" />
-            <path d="M0 46 Q15 34 30 46 T60 46" fill="none" stroke="currentColor" strokeWidth="1.2" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#leheriya)" />
-      </svg>
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+      style={{ contain: 'paint' }}
+    >
+      {/* 1. leheriya: tirchi (-35deg) static layer */}
+      <div
+        className="absolute -inset-[50%] -rotate-[35deg] opacity-[0.08]"
+        style={{ backgroundImage: LEHERIYA, backgroundSize: '60px 48px' }}
+      />
 
       <div className="text-gold">
-        {/* 2. rangoli */}
+        {/* 2. rangoli (static) */}
         <Rangoli className="absolute -left-24 top-10 h-60 w-60 opacity-30 md:-left-36 md:top-16 md:h-[26rem] md:w-[26rem]" />
-        <Rangoli
-          className="absolute -right-24 bottom-10 h-60 w-60 opacity-30 md:-right-36 md:bottom-16 md:h-[26rem] md:w-[26rem]"
-          duration={150}
-        />
+        <Rangoli className="absolute -right-24 bottom-10 h-60 w-60 opacity-30 md:-right-36 md:bottom-16 md:h-[26rem] md:w-[26rem]" />
 
-        {/* 3. diye */}
+        {/* 3. diye: mobile par 2, desktop par 4 */}
         <Diya className="absolute bottom-6 left-4 h-9 w-10 opacity-70 md:bottom-12 md:left-[8%] md:h-14 md:w-16" />
         <Diya
           className="absolute right-4 top-6 h-9 w-10 opacity-70 md:right-[8%] md:top-12 md:h-14 md:w-16"
           duration={2.9}
-          delay={0.7}
         />
         <Diya
           className="absolute bottom-12 left-[18%] hidden h-10 w-12 opacity-45 md:block"
           duration={2.6}
-          delay={1.3}
         />
         <Diya
           className="absolute right-[18%] top-16 hidden h-10 w-12 opacity-45 md:block"
           duration={3.1}
-          delay={0.3}
         />
       </div>
     </div>
@@ -150,8 +132,6 @@ export default function Rsvp() {
   const [status, setStatus] = useState('idle') // idle | sending | done | error
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }))
-  const toggleEvent = (id) =>
-    set('events', form.events.includes(id) ? form.events.filter((e) => e !== id) : [...form.events, id])
 
   const onSubmit = async (e) => {
     e.preventDefault()
@@ -208,8 +188,6 @@ export default function Rsvp() {
                       <span className="mb-1.5 block text-ink/80">Number of guests</span>
                       <input type="number" min="1" max="10" className={field} value={form.guests} onChange={(e) => set('guests', Number(e.target.value))} />
                     </label>
-                    <div>
-                    </div>
                   </motion.div>
                 )}
 
@@ -220,15 +198,14 @@ export default function Rsvp() {
 
                 {status === 'error' && <p className="text-sm text-rose">Something went wrong. Please try again.</p>}
 
-                <motion.button
-                  whileHover={{ y: -2 }}
-                  whileTap={{ scale: 0.98 }}
+                <button
+                  type="submit"
                   disabled={status === 'sending'}
-                  className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-maroon py-3.5 text-sm font-medium tracking-wide text-cream hover:bg-maroon-dark disabled:opacity-70"
+                  className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-maroon py-3.5 text-sm font-medium tracking-wide text-cream transition hover:-translate-y-0.5 hover:bg-maroon-dark active:scale-[0.98] disabled:opacity-70"
                 >
                   {status === 'sending' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   {status === 'sending' ? 'Sending...' : 'Send RSVP'}
-                </motion.button>
+                </button>
                 <p className="text-center text-xs text-ink/55">{wedding.rsvp.deadline}</p>
               </motion.form>
             )}
